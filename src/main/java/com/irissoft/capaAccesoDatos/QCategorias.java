@@ -77,4 +77,31 @@ public class QCategorias implements RpCategorias<DtCategorias>{
             return false;
         }
     }
+
+    @Override
+    public DtCategorias findByNombre(String nombre) {
+        con = new ConexionBD();
+        query = "SELECT * FROM categorias WHERE nombre = ?";
+
+        try {
+            PreparedStatement ps = con.conexion.prepareStatement(query);
+            ps.setString(1, nombre);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                DtCategorias dt = new DtCategorias();
+                dt.setId(rs.getString("id"));
+                dt.setNombre(rs.getString("nombre"));
+                dt.setCreadoEn(rs.getTimestamp("creadoEn"));
+                dt.setActualizadoEn(rs.getTimestamp("actualizadoEn"));
+                con.conexion.close();
+                return dt;
+            }
+            con.conexion.close();
+            return null;
+        } catch (SQLException e) {
+            System.err.println("Error findByNombre: " + e.getMessage());
+            return null;
+        }
+    }
 }

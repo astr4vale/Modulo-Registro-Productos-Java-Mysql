@@ -2,9 +2,14 @@ package com.irissoft.capaPresentacion;
 
 import com.irissoft.capaNegocios.NgCategorias;
 import com.irissoft.capaNegocios.NgProductos;
+import com.irissoft.capaNegocios.NgProductosConCategorias;
+import com.irissoft.datos.DtProductos;
 import java.awt.Color;
 import java.awt.Component;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -19,6 +24,11 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
 public class FrmRegistroProductos extends javax.swing.JInternalFrame {
+    
+        // Constants
+    private static final String[] COLUMN_NAMES = {"ID", "CATEGORÍA", "ACCIONES"};
+    private static final Color BUTTON_COLOR = new Color(255, 54, 0);
+    private static final String REMOVE_BUTTON_TEXT = "Retirar";
 
     // Variables de instancia
     private DefaultTableModel dtmProductos;
@@ -30,7 +40,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         ngCategorias = new NgCategorias();
         ngProductos = new NgProductos();
         inicializarModeloTabla();
-        cargarDatos();
         configurarTabla();
         inicializarListeners();
     }
@@ -74,16 +83,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         tablaCategorias.getColumn("ACCIONES").setCellEditor(new ButtonEditor(new JCheckBox()));
     }
 
-    private void cargarDatos() {
-        dtmProductos.setRowCount(0);
-        ngCategorias.getAll().forEach(item
-                -> dtmProductos.addRow(new Object[]{
-            item.getId(),
-            item.getNombre(),
-            "Seleccionar"
-        })
-        );
-    }
 
     class ButtonRenderer extends JButton implements TableCellRenderer {
 
@@ -122,17 +121,18 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         private void manejarAccionBoton() {
             int row = tablaCategorias.getSelectedRow();
             if (row != -1) {
-                int id = (int) tablaCategorias.getValueAt(row, 0);
                 int confirm = JOptionPane.showConfirmDialog(
                         button,
-                        "¿Deseas eliminar esta categoría?",
+                        "¿Deseas retirar esta categoría de la lista?",
                         "Confirmación",
                         JOptionPane.YES_NO_OPTION
                 );
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    ngCategorias.deleteCategoria(id);
-                    cargarDatos();
+                    // Simplemente removemos la fila del modelo de la tabla
+                    DefaultTableModel model = (DefaultTableModel) tablaCategorias.getModel();
+                    model.removeRow(row);
+                    fireEditingStopped(); // Importante para terminar la edición
                 }
             }
         }
@@ -389,97 +389,108 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
     }//GEN-LAST:event_txtPrecioTotalActionPerformed
 
     private void btnRegistrarDatosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegistrarDatosActionPerformed
-        String nombreProducto = txtNombreProducto.getText();
-        String cantidadStr = txtCantidad.getText();
-        String precioUnitarioStr = txtPrecioUnitario.getText();
+        // Validar que los campos necesarios no estén vacíos
+        if (txtNombreProducto.getText().trim().isEmpty()
+                || txtCantidad.getText().trim().isEmpty()
+                || txtPrecioUnitario.getText().trim().isEmpty()) {
 
-        if (nombreProducto.isEmpty() || cantidadStr.isEmpty() || precioUnitarioStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Por favor complete todos los campos requeridos",
+                    "Campos incompletos",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        if (!nombreProducto.matches(".*[A-Za-z].*") || !nombreProducto.matches("[A-Za-z0-9 ]+")) {
-            JOptionPane.showMessageDialog(this, "El nombre del producto debe contener al menos una letra y solo puede incluir letras, números y espacios.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        int cantidad = 0;
         try {
-            cantidad = Integer.parseInt(cantidadStr);
-            if (cantidad <= 0) {
-                throw new NumberFormatException();
+            // Crear el objeto producto
+            DtProductos producto = new DtProductos();
+            producto.setId(UUID.randomUUID().toString());
+            producto.setNombre(txtNombreProducto.getText().trim());
+            producto.setCantidad(Integer.parseInt(txtCantidad.getText().trim()));
+            producto.setPrecioUnitario(new BigDecimal(txtPrecioUnitario.getText().trim()));
+            producto.setPrecioTotal(new BigDecimal(txtPrecioTotal.getText().trim()));
+
+            // Obtener las categorías de la tabla
+            DefaultTableModel model = (DefaultTableModel) tablaCategorias.getModel();
+            List<String> categorias = new ArrayList<>();
+            for (int i = 0; i < model.getRowCount(); i++) {
+                categorias.add(model.getValueAt(i, 1).toString()); // Obtener el nombre de la categoría
             }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "La cantidad debe ser un número entero positivo.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
 
-        @SuppressWarnings("UnusedAssignment")
-        BigDecimal precioUnitario = BigDecimal.ZERO;
-        try {
-            precioUnitario = new BigDecimal(precioUnitarioStr);
-            if (precioUnitario.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new NumberFormatException();
+            // Procesar el producto con sus categorías
+            NgProductosConCategorias ngProductosConCategorias = new NgProductosConCategorias();
+            boolean resultado = ngProductosConCategorias.procesarProductoConCategorias(producto, categorias);
+
+            if (resultado) {
+                JOptionPane.showMessageDialog(this,
+                        "Producto registrado exitosamente",
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                // Limpiar el formulario después de un registro exitoso
+                limpiarCampos();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Error al registrar el producto",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
+
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "El precio unitario debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(this,
+                    "Por favor ingrese valores numéricos válidos",
+                    "Error de formato",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al procesar el registro: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
-
-        int row = tablaCategorias.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Por favor, seleccione una categoría.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        int idCategoria = (int) tablaCategorias.getValueAt(row, 0);
-
-
-        BigDecimal precioTotal = precioUnitario.multiply(new BigDecimal(cantidad));
-        txtPrecioTotal.setText(precioTotal.toString());
-
-        ngProductos.insert(nombreProducto, cantidad, precioUnitario, idCategoria);
-        limpiarCampos();
     }//GEN-LAST:event_btnRegistrarDatosActionPerformed
 
     private void btnAgregarCategoriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarCategoriaActionPerformed
-        String nombre = txtNombreCategoria.getText().trim();
+        String nombreCategoria = txtNombreCategoria.getText().trim();
 
-        if (nombre.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El nombre de la categoría no puede estar vacío.", "Error", JOptionPane.ERROR_MESSAGE);
-            return; 
+        if (nombreCategoria.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Por favor ingrese un nombre de categoría",
+                    "Campo vacío",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
-        if (nombre.length() < 3) {
-            JOptionPane.showMessageDialog(this, "El nombre de la categoría debe tener al menos 3 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
-            return; 
-        }
+        // Generar un ID temporal para la categoría (puedes usar UUID o cualquier otro método)
+        String idTemporal = UUID.randomUUID().toString();
 
+        // Agregar la nueva fila al modelo de la tabla
+        DefaultTableModel model = (DefaultTableModel) tablaCategorias.getModel();
+        model.addRow(new Object[]{
+            idTemporal,
+            nombreCategoria,
+            "Retirar"
+        });
 
-        if (!nombre.matches(".*[A-Za-z].*") || !nombre.matches("[A-Za-z0-9 ]+")) {
-            JOptionPane.showMessageDialog(this, "El nombre de la categoría debe contener al menos una letra y solo puede incluir letras, números y espacios.", "Error", JOptionPane.ERROR_MESSAGE);
-            return; 
-        }
-
-        NgCategorias ngCategorias = new NgCategorias();
-        if (ngCategorias.existeCategoriaPorNombre(nombre)) {
-            JOptionPane.showMessageDialog(this, "Ya existe una categoría con ese nombre.", "Advertencia", JOptionPane.WARNING_MESSAGE);
-            return; 
-        }
-
-        ngCategorias.insert(nombre);
+        // Limpiar el campo de texto
         txtNombreCategoria.setText("");
-        cargarDatos();
+        txtNombreCategoria.requestFocus();
     }//GEN-LAST:event_btnAgregarCategoriaActionPerformed
 
     private void limpiarCampos() {
+        // Limpiar campos de texto
         txtNombreProducto.setText("");
         txtCantidad.setText("");
         txtPrecioUnitario.setText("");
         txtPrecioTotal.setText("");
         txtNombreCategoria.setText("");
-    }
 
+        // Limpiar tabla de categorías
+        DefaultTableModel model = (DefaultTableModel) tablaCategorias.getModel();
+        model.setRowCount(0);
+
+        // Establecer el foco en el primer campo
+        txtNombreProducto.requestFocus();
+    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnAgregarCategoria;
     private javax.swing.JButton btnRegistrarDatos;

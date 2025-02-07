@@ -13,6 +13,10 @@ public class NgCategorias {
         rpCategorias = new QCategorias();
     }
 
+    public DtCategorias buscarCategoriaPorNombre(String nombre) {
+        return ((QCategorias) rpCategorias).findByNombre(nombre);
+    }
+
     // Método para insertar una categoría
     public int insertarCategoria(DtCategorias dtCategoria) {
         return rpCategorias.insert(dtCategoria);

@@ -1,5 +1,6 @@
 package com.irissoft.repositorios;
 
+import com.irissoft.datos.DtCategorias;
 import java.util.List;
 
 public interface RpCategorias<Dt> {
@@ -8,5 +9,7 @@ public interface RpCategorias<Dt> {
 
     List<Dt> getAll();
 
-    boolean delete(String idCategoria);  // Cambié el parámetro de int a String
+    boolean delete(String idCategoria);
+    
+    DtCategorias findByNombre(String nombre);
 }
