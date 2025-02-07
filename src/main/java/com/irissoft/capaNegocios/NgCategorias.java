@@ -7,37 +7,24 @@ import java.util.List;
 
 public class NgCategorias {
 
-    private final RpCategorias<DtCategorias> rpCategorias;
+    private final RpCategorias rpCategorias;
 
     public NgCategorias() {
         rpCategorias = new QCategorias();
     }
 
-    
-
-    public boolean insert(String nombre) {
-        DtCategorias dtCategorias = new DtCategorias();
-        dtCategorias.setNombre(nombre);
-
-        return rpCategorias.insert(dtCategorias) > 0;
+    // Método para insertar una categoría
+    public int insertarCategoria(DtCategorias dtCategoria) {
+        return rpCategorias.insert(dtCategoria);
     }
 
-    public List<DtCategorias> getAll() {
+    // Método para obtener todas las categorías
+    public List<DtCategorias> obtenerTodasLasCategorias() {
         return rpCategorias.getAll();
     }
 
-    public boolean deleteCategoria(int idCategoria) {
+    // Método para eliminar una categoría por su id
+    public boolean eliminarCategoria(String idCategoria) {
         return rpCategorias.delete(idCategoria);
     }
-    public boolean existeCategoriaPorNombre(String nombre) {
-    // Aquí debes tener la lógica para verificar en la base de datos o en la lista si ya existe la categoría
-    List<DtCategorias> categorias = getAll();
-    for (DtCategorias categoria : categorias) {
-        if (categoria.getNombre().equalsIgnoreCase(nombre)) {
-            return true; // Ya existe una categoría con ese nombre
-        }
-    }
-    return false; // No existe ninguna categoría con ese nombre
-}
-
 }

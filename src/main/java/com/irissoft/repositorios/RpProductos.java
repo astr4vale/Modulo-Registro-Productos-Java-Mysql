@@ -9,7 +9,7 @@ public interface RpProductos<Dt> {
 
     List<Dt> getAll();
 
-    boolean delete(int idProducto);
+    boolean delete(String idProducto);
 
     boolean update(Dt dt);
 

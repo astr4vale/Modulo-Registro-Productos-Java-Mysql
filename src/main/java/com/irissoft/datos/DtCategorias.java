@@ -1,15 +1,14 @@
 package com.irissoft.datos;
 
 public class DtCategorias extends DtGeneric {
-
-    private int id;
+    private String id; 
     private String nombre;
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -20,5 +19,4 @@ public class DtCategorias extends DtGeneric {
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
-
 }

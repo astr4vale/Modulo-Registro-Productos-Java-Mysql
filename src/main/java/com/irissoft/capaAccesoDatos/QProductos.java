@@ -1,8 +1,11 @@
+
 package com.irissoft.capaAccesoDatos;
 
 import com.irissoft.datos.DtProductos;
 import com.irissoft.repositorios.RpProductos;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,14 +17,14 @@ public class QProductos implements RpProductos<DtProductos> {
     @Override
     public int insert(DtProductos dt) {
         con = new ConexionBD();
-        query = "INSERT INTO productos (nombre, cantidad, precioUnitario, idCategoria) VALUES (?, ?, ?, ?)";
+        query = "INSERT INTO productos (id, nombre, cantidad, precioUnitario) VALUES (?, ?, ?, ?)";
 
         try {
-            PreparedStatement ps = con.conexion.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, dt.getNombre());
-            ps.setInt(2, dt.getCantidad());
-            ps.setBigDecimal(3, dt.getPrecioUnitario());
-            ps.setInt(4, dt.getIdCategoria());
+            PreparedStatement ps = con.conexion.prepareStatement(query);
+            ps.setString(1, dt.getId());  // id es un String
+            ps.setString(2, dt.getNombre());
+            ps.setInt(3, dt.getCantidad());
+            ps.setBigDecimal(4, dt.getPrecioUnitario());
 
             int rowsAffected = ps.executeUpdate();
             con.conexion.close();
@@ -44,12 +47,11 @@ public class QProductos implements RpProductos<DtProductos> {
 
             while (rs.next()) {
                 DtProductos dt = new DtProductos();
-                dt.setId(rs.getInt("id"));
+                dt.setId(rs.getString("id"));  // id es un String
                 dt.setNombre(rs.getString("nombre"));
                 dt.setCantidad(rs.getInt("cantidad"));
                 dt.setPrecioUnitario(rs.getBigDecimal("precioUnitario"));
                 dt.setPrecioTotal(rs.getBigDecimal("precioTotal"));
-                dt.setIdCategoria(rs.getInt("idCategoria"));
                 dt.setCreadoEn(rs.getTimestamp("creadoEn"));
                 dt.setActualizadoEn(rs.getTimestamp("actualizadoEn"));
                 listaProductos.add(dt);
@@ -62,43 +64,14 @@ public class QProductos implements RpProductos<DtProductos> {
         }
     }
 
-//    @Override
-//    public DtProductos getById(int idProducto) {
-//        con = new ConexionBD();
-//        query = "SELECT * FROM productos WHERE id = ?";
-//
-//        try {
-//            PreparedStatement ps = con.conexion.prepareStatement(query);
-//            ps.setInt(1, idProducto);
-//            ResultSet rs = ps.executeQuery();
-//
-//            if (rs.next()) {
-//                DtProductos dt = new DtProductos();
-//                dt.setId(rs.getInt("id"));
-//                dt.setNombre(rs.getString("nombre"));
-//                dt.setCantidad(rs.getInt("cantidad"));
-//                dt.setPrecioUnitario(rs.getBigDecimal("precioUnitario"));
-//                dt.setPrecioTotal(rs.getBigDecimal("precioTotal"));
-//                dt.setIdCategoria(rs.getInt("idCategoria"));
-//                dt.setCreadoEn(rs.getTimestamp("creadoEn"));
-//                dt.setActualizadoEn(rs.getTimestamp("actualizadoEn"));
-//                return dt;
-//            }
-//            con.conexion.close();
-//        } catch (SQLException e) {
-//            System.err.println("Error getById: " + e.getMessage());
-//        }
-//        return null;
-//    }
-
     @Override
-    public boolean delete(int idProducto) {
+    public boolean delete(String idProducto) {
         con = new ConexionBD();
         query = "DELETE FROM productos WHERE id = ?";
 
         try {
             PreparedStatement ps = con.conexion.prepareStatement(query);
-            ps.setInt(1, idProducto);
+            ps.setString(1, idProducto);  // idProducto es ahora un String
             int rowsAffected = ps.executeUpdate();
             con.conexion.close();
             return rowsAffected > 0;
@@ -111,15 +84,14 @@ public class QProductos implements RpProductos<DtProductos> {
     @Override
     public boolean update(DtProductos dt) {
         con = new ConexionBD();
-        query = "UPDATE productos SET nombre = ?, cantidad = ?, precioUnitario = ?, idCategoria = ? WHERE id = ?";
+        query = "UPDATE productos SET nombre = ?, cantidad = ?, precioUnitario = ? WHERE id = ?";
 
         try {
             PreparedStatement ps = con.conexion.prepareStatement(query);
             ps.setString(1, dt.getNombre());
             ps.setInt(2, dt.getCantidad());
             ps.setBigDecimal(3, dt.getPrecioUnitario());
-            ps.setInt(4, dt.getIdCategoria());
-            ps.setInt(5, dt.getId());
+            ps.setString(4, dt.getId());  // id es un String
 
             int rowsAffected = ps.executeUpdate();
             con.conexion.close();
@@ -129,4 +101,5 @@ public class QProductos implements RpProductos<DtProductos> {
             return false;
         }
     }
+
 }

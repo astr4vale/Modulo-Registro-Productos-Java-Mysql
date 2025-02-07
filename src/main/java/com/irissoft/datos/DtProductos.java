@@ -5,18 +5,18 @@ import java.math.BigDecimal;
 
 public class DtProductos extends DtGeneric {
 
-    private int id;
+    private String id;
     private String nombre;
     private int cantidad;
     private BigDecimal precioUnitario;
     private BigDecimal precioTotal;
-    private Integer idCategoria;
+    private String idCategoria;
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -52,11 +52,11 @@ public class DtProductos extends DtGeneric {
         this.precioTotal = precioTotal;
     }
 
-    public Integer getIdCategoria() {
+    public String getIdCategoria() {
         return idCategoria;
     }
 
-    public void setIdCategoria(Integer idCategoria) {
+    public void setIdCategoria(String idCategoria) {
         this.idCategoria = idCategoria;
     }
 

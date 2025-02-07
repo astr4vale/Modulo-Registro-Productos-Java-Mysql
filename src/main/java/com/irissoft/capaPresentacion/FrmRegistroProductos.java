@@ -11,6 +11,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -73,7 +74,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         tablaCategorias.getColumn("ACCIONES").setCellEditor(new ButtonEditor(new JCheckBox()));
     }
 
-    // Métodos de datos
     private void cargarDatos() {
         dtmProductos.setRowCount(0);
         ngCategorias.getAll().forEach(item
@@ -85,7 +85,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         );
     }
 
-    // Clases internas para renderizado de tabla
     class ButtonRenderer extends JButton implements TableCellRenderer {
 
         public ButtonRenderer() {
@@ -147,43 +146,36 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         }
     }
 
-// Método que actualiza el precio total
+    
     private void actualizarPrecioTotal() {
-        try {
-            // Obtener los valores de los campos de Precio Unitario y Cantidad
-            String cantidadStr = txtCantidad.getText();
-            String precioUnitarioStr = txtPrecioUnitario.getText();
+        SwingUtilities.invokeLater(() -> {
+            try {
 
-            // Validar que los campos no estén vacíos
-            if (!cantidadStr.isEmpty() && !precioUnitarioStr.isEmpty()) {
-                // Convertir los valores a enteros y BigDecimal
-                int cantidad = Integer.parseInt(cantidadStr);
-                BigDecimal precioUnitario = new BigDecimal(precioUnitarioStr);
+                String cantidadStr = txtCantidad.getText();
+                String precioUnitarioStr = txtPrecioUnitario.getText();
 
-                // Verificar si la cantidad o el precio unitario son negativos
-                if (cantidad < 0 || precioUnitario.compareTo(BigDecimal.ZERO) < 0) {
-                    JOptionPane.showMessageDialog(this, "Los valores deben ser números positivos", "Advertencia", JOptionPane.WARNING_MESSAGE);
-                    txtPrecioTotal.setText("");
+                if (!cantidadStr.isEmpty() && !precioUnitarioStr.isEmpty()) {
+                    int cantidad = Integer.parseInt(cantidadStr);
+                    BigDecimal precioUnitario = new BigDecimal(precioUnitarioStr);
+                    if (cantidad < 0 || precioUnitario.compareTo(BigDecimal.ZERO) < 0) {
+                        JOptionPane.showMessageDialog(this, "Los valores deben ser números positivos", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                        txtPrecioTotal.setText("");
+                    } else {
+                        BigDecimal precioTotal = precioUnitario.multiply(new BigDecimal(cantidad));
+                        txtPrecioTotal.setText(precioTotal.toString());
+                    }
                 } else {
-                    // Calcular el precio total
-                    BigDecimal precioTotal = precioUnitario.multiply(new BigDecimal(cantidad));
-
-                    // Establecer el resultado en el campo Precio Total
-                    txtPrecioTotal.setText(precioTotal.toString());
+                    txtPrecioTotal.setText("");
                 }
-            } else {
-                // Si los campos están vacíos, limpiar el campo de Precio Total
-                txtPrecioTotal.setText("");
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Por favor, ingrese números válidos", "Error de formato", JOptionPane.ERROR_MESSAGE);
+                txtCantidad.setText("");
+                txtPrecioUnitario.setText("");
             }
-        } catch (NumberFormatException e) {
-            // Si ocurre un error de formato, mostrar un mensaje de error y limpiar el campo de Precio Total
-            JOptionPane.showMessageDialog(this, "Por favor, ingrese números válidos", "Error de formato", JOptionPane.ERROR_MESSAGE);
-            txtPrecioTotal.setText("");
-        }
+        });
     }
 
     private void inicializarListeners() {
-        // Agregar listener al campo de Precio Unitario
         txtPrecioUnitario.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
@@ -200,8 +192,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
                 actualizarPrecioTotal();
             }
         });
-
-        // Agregar listener al campo de Cantidad
         txtCantidad.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
@@ -403,13 +393,16 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         String cantidadStr = txtCantidad.getText();
         String precioUnitarioStr = txtPrecioUnitario.getText();
 
-        // Validar campos vacíos
         if (nombreProducto.isEmpty() || cantidadStr.isEmpty() || precioUnitarioStr.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
-            return; // Detener la acción si hay campos vacíos
+            return;
         }
 
-        // Validar cantidad como número entero positivo
+        if (!nombreProducto.matches(".*[A-Za-z].*") || !nombreProducto.matches("[A-Za-z0-9 ]+")) {
+            JOptionPane.showMessageDialog(this, "El nombre del producto debe contener al menos una letra y solo puede incluir letras, números y espacios.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         int cantidad = 0;
         try {
             cantidad = Integer.parseInt(cantidadStr);
@@ -421,7 +414,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
             return;
         }
 
-        // Validar precio unitario como número decimal positivo
         @SuppressWarnings("UnusedAssignment")
         BigDecimal precioUnitario = BigDecimal.ZERO;
         try {
@@ -434,7 +426,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
             return;
         }
 
-        // Validar que se haya seleccionado una categoría
         int row = tablaCategorias.getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(this, "Por favor, seleccione una categoría.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -443,61 +434,44 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
 
         int idCategoria = (int) tablaCategorias.getValueAt(row, 0);
 
-        // Verificar si el producto ya existe en la base de datos
-        if (ngProductos.existeProductoPorNombre(nombreProducto)) {
-            JOptionPane.showMessageDialog(this, "Ya existe un producto con el mismo nombre.", "Advertencia", JOptionPane.WARNING_MESSAGE);
-            return; // Detener la acción si el producto ya existe
-        }
 
-        // Calcular precio total
         BigDecimal precioTotal = precioUnitario.multiply(new BigDecimal(cantidad));
         txtPrecioTotal.setText(precioTotal.toString());
 
-        // Registrar producto
         ngProductos.insert(nombreProducto, cantidad, precioUnitario, idCategoria);
         limpiarCampos();
     }//GEN-LAST:event_btnRegistrarDatosActionPerformed
 
     private void btnAgregarCategoriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarCategoriaActionPerformed
-        String nombre = txtNombreCategoria.getText().trim(); // Eliminar espacios en blanco al principio y al final
+        String nombre = txtNombreCategoria.getText().trim();
 
-        // Validar que el nombre no esté vacío
         if (nombre.isEmpty()) {
             JOptionPane.showMessageDialog(this, "El nombre de la categoría no puede estar vacío.", "Error", JOptionPane.ERROR_MESSAGE);
-            limpiarCampos();
-            return; // Detener la acción si el campo está vacío
+            return; 
         }
 
-        // Validar que el nombre de la categoría tenga una longitud mínima
         if (nombre.length() < 3) {
             JOptionPane.showMessageDialog(this, "El nombre de la categoría debe tener al menos 3 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
-            limpiarCampos();
-            return; // Detener la acción si el nombre es muy corto
+            return; 
         }
 
-        // Validar que el nombre de la categoría no contenga caracteres no permitidos (opcional)
-        if (!nombre.matches("[A-Za-z0-9 ]+")) { // Permitimos solo letras, números y espacios
-            JOptionPane.showMessageDialog(this, "El nombre de la categoría solo puede contener letras, números y espacios.", "Error", JOptionPane.ERROR_MESSAGE);
-            limpiarCampos();
-            return; // Detener la acción si el nombre contiene caracteres no permitidos
+
+        if (!nombre.matches(".*[A-Za-z].*") || !nombre.matches("[A-Za-z0-9 ]+")) {
+            JOptionPane.showMessageDialog(this, "El nombre de la categoría debe contener al menos una letra y solo puede incluir letras, números y espacios.", "Error", JOptionPane.ERROR_MESSAGE);
+            return; 
         }
 
-        // Verificar si la categoría ya existe
         NgCategorias ngCategorias = new NgCategorias();
         if (ngCategorias.existeCategoriaPorNombre(nombre)) {
             JOptionPane.showMessageDialog(this, "Ya existe una categoría con ese nombre.", "Advertencia", JOptionPane.WARNING_MESSAGE);
-            limpiarCampos();
-            return; // Detener la acción si ya existe la categoría
+            return; 
         }
 
-        // Si pasa todas las validaciones, insertar la categoría
         ngCategorias.insert(nombre);
-
-        // Limpiar el campo de texto y recargar la lista de categorías
         txtNombreCategoria.setText("");
         cargarDatos();
     }//GEN-LAST:event_btnAgregarCategoriaActionPerformed
-    // Métodos auxiliares
+
     private void limpiarCampos() {
         txtNombreProducto.setText("");
         txtCantidad.setText("");

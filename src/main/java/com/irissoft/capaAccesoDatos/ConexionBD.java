@@ -13,7 +13,7 @@ import java.sql.SQLException;
  * @author KALI
  */
 public class ConexionBD {
-    private final String conexionString = "jdbc:mariadb://localhost:3306/tienda";
+    private final String conexionString = "jdbc:mariadb://localhost:3306/tienda2";
     private final String userString = "root";
     private final String passString = "root";
 
