@@ -5,7 +5,6 @@ import com.irissoft.datos.DtCategorias;
 import com.irissoft.datos.DtProductos;
 import com.irissoft.repositorios.RpProductosConCategorias;
 import java.util.List;
-import java.util.UUID;
 
 public class NgProductosConCategorias {
 
@@ -19,40 +18,52 @@ public class NgProductosConCategorias {
         ngProductos = new NgProductos();
     }
 
-    public boolean procesarProductoConCategorias(DtProductos producto, List<String> nombresCategorias) {
+    public String registrarNuevoProducto(String nombreProducto, String cantidadStr,
+            String precioUnitarioStr, List<String> nombresCategorias) {
+        // 1. Validar producto usando NgProductos
+        String validacionProducto = ngProductos.validarDatosProducto(nombreProducto, cantidadStr, precioUnitarioStr);
+        if (!validacionProducto.equals("SUCCESS")) {
+            return validacionProducto;
+        }
+
+        // 2. Validar categorías usando NgCategorias
+        String validacionCategorias = ngCategorias.validarCategorias(nombresCategorias);
+        if (!validacionCategorias.equals("SUCCESS")) {
+            return validacionCategorias;
+        }
+
+        // 3. Verificar si el producto ya existe en alguna categoría
+        for (String nombreCategoria : nombresCategorias) {
+            if (ngCategorias.existeProductoEnCategoria(nombreProducto, nombreCategoria)) {
+                return "El producto ya existe en la categoría: " + nombreCategoria;
+            }
+        }
+
         try {
-            // Primero insertamos el producto
-            int resultadoProducto = ngProductos.insertarProducto(producto);
+            // 4. Crear y guardar el producto
+            DtProductos producto = ngProductos.crearProducto(nombreProducto, cantidadStr, precioUnitarioStr);
+            int resultadoProducto = ngProductos.guardarProducto(producto);
+
             if (resultadoProducto <= 0) {
-                return false;
+                return "Error al guardar el producto";
             }
 
-            // Procesamos cada categoría
+            // 5. Procesar las categorías y sus relaciones
             for (String nombreCategoria : nombresCategorias) {
                 DtCategorias categoria = ngCategorias.buscarCategoriaPorNombre(nombreCategoria);
-                
                 if (categoria == null) {
-                    // La categoría no existe, la creamos
-                    DtCategorias nuevaCategoria = new DtCategorias();
-                    nuevaCategoria.setId(UUID.randomUUID().toString()); // Generar un nuevo ID
-                    nuevaCategoria.setNombre(nombreCategoria);
-                    
-                    int resultadoCategoria = ngCategorias.insertarCategoria(nuevaCategoria);
-                    if (resultadoCategoria > 0) {
-                        categoria = nuevaCategoria;
-                    } else {
-                        continue; // Si falla la inserción de la categoría, continuamos con la siguiente
-                    }
+                    // Crear nueva categoría si no existe
+                    categoria = ngCategorias.crearCategoria(nombreCategoria);
+                    ngCategorias.insertarCategoria(categoria);
                 }
 
-                // Creamos la relación entre el producto y la categoría
+                // Crear relación producto-categoría
                 rpProductosConCategorias.insertProductoConCategoria(producto.getId(), categoria.getId());
             }
-            
-            return true;
+
+            return "SUCCESS";
         } catch (Exception e) {
-            System.err.println("Error al procesar producto con categorías: " + e.getMessage());
-            return false;
+            return "Error en el proceso: " + e.getMessage();
         }
     }
 }

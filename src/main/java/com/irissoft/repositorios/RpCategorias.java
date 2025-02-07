@@ -10,6 +10,9 @@ public interface RpCategorias<Dt> {
     List<Dt> getAll();
 
     boolean delete(String idCategoria);
-    
+
     DtCategorias findByNombre(String nombre);
+
+    boolean existeProductoEnCategoria(String nombreProducto, String idCategoria);
+
 }

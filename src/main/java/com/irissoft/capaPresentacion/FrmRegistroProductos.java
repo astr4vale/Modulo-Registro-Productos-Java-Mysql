@@ -119,8 +119,9 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         }
 
         private void manejarAccionBoton() {
-            int row = tablaCategorias.getSelectedRow();
-            if (row != -1) {
+            int row = tablaCategorias.getSelectedRow(); // Obtener la fila seleccionada
+
+            if (row != -1 && row < tablaCategorias.getRowCount()) { // Verificar que la fila es válida
                 int confirm = JOptionPane.showConfirmDialog(
                         button,
                         "¿Deseas retirar esta categoría de la lista?",
@@ -129,11 +130,27 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
                 );
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Simplemente removemos la fila del modelo de la tabla
                     DefaultTableModel model = (DefaultTableModel) tablaCategorias.getModel();
-                    model.removeRow(row);
-                    fireEditingStopped(); // Importante para terminar la edición
+                    model.removeRow(row); // Eliminar la fila seleccionada
+
+                    // Si la tabla no tiene filas después de eliminar, no llamamos a fireEditingStopped()
+                    if (model.getRowCount() > 0) {
+                        int newRow = Math.min(row, model.getRowCount() - 1);
+                        tablaCategorias.setRowSelectionInterval(newRow, newRow); // Seleccionar una fila válida
+                    }
+
+                    // Verificamos que la tabla aún tenga filas antes de llamar a fireEditingStopped()
+                    if (model.getRowCount() > 0) {
+                        fireEditingStopped(); // Finalizar edición correctamente
+                    }
                 }
+            } else {
+                JOptionPane.showMessageDialog(
+                        button,
+                        "No hay ninguna fila seleccionada o la fila es inválida.",
+                        "Advertencia",
+                        JOptionPane.WARNING_MESSAGE
+                );
             }
         }
 
@@ -146,7 +163,6 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
         }
     }
 
-    
     private void actualizarPrecioTotal() {
         SwingUtilities.invokeLater(() -> {
             try {
@@ -208,6 +224,15 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
                 actualizarPrecioTotal();
             }
         });
+    }
+
+    private List<String> obtenerNombresCategoriasDeTabla() {
+        DefaultTableModel model = (DefaultTableModel) tablaCategorias.getModel();
+        List<String> nombresCategorias = new ArrayList<>();
+        for (int i = 0; i < model.getRowCount(); i++) {
+            nombresCategorias.add(model.getValueAt(i, 1).toString());
+        }
+        return nombresCategorias;
     }
 
     @SuppressWarnings("unchecked")
@@ -389,61 +414,32 @@ public class FrmRegistroProductos extends javax.swing.JInternalFrame {
     }//GEN-LAST:event_txtPrecioTotalActionPerformed
 
     private void btnRegistrarDatosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegistrarDatosActionPerformed
-        // Validar que los campos necesarios no estén vacíos
-        if (txtNombreProducto.getText().trim().isEmpty()
-                || txtCantidad.getText().trim().isEmpty()
-                || txtPrecioUnitario.getText().trim().isEmpty()) {
-
-            JOptionPane.showMessageDialog(this,
-                    "Por favor complete todos los campos requeridos",
-                    "Campos incompletos",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
         try {
-            // Crear el objeto producto
-            DtProductos producto = new DtProductos();
-            producto.setId(UUID.randomUUID().toString());
-            producto.setNombre(txtNombreProducto.getText().trim());
-            producto.setCantidad(Integer.parseInt(txtCantidad.getText().trim()));
-            producto.setPrecioUnitario(new BigDecimal(txtPrecioUnitario.getText().trim()));
-            producto.setPrecioTotal(new BigDecimal(txtPrecioTotal.getText().trim()));
+            // Solo recolectamos los datos crudos
+            String nombreProducto = txtNombreProducto.getText();
+            String cantidadStr = txtCantidad.getText();
+            String precioUnitarioStr = txtPrecioUnitario.getText();
+            List<String> nombresCategorias = obtenerNombresCategoriasDeTabla();
 
-            // Obtener las categorías de la tabla
-            DefaultTableModel model = (DefaultTableModel) tablaCategorias.getModel();
-            List<String> categorias = new ArrayList<>();
-            for (int i = 0; i < model.getRowCount(); i++) {
-                categorias.add(model.getValueAt(i, 1).toString()); // Obtener el nombre de la categoría
-            }
-
-            // Procesar el producto con sus categorías
+            // Enviamos los datos crudos a la capa de negocio
             NgProductosConCategorias ngProductosConCategorias = new NgProductosConCategorias();
-            boolean resultado = ngProductosConCategorias.procesarProductoConCategorias(producto, categorias);
+            String resultado = ngProductosConCategorias.registrarNuevoProducto(
+                    nombreProducto,
+                    cantidadStr,
+                    precioUnitarioStr,
+                    nombresCategorias
+            );
 
-            if (resultado) {
-                JOptionPane.showMessageDialog(this,
-                        "Producto registrado exitosamente",
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-                // Limpiar el formulario después de un registro exitoso
+            if (resultado.equals("SUCCESS")) {
+                JOptionPane.showMessageDialog(this, "Producto registrado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
                 limpiarCampos();
             } else {
-                JOptionPane.showMessageDialog(this,
-                        "Error al registrar el producto",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, resultado, "Error", JOptionPane.ERROR_MESSAGE);
             }
 
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Por favor ingrese valores numéricos válidos",
-                    "Error de formato",
-                    JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                    "Error al procesar el registro: " + e.getMessage(),
+                    "Error inesperado: " + e.getMessage(),
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
         }

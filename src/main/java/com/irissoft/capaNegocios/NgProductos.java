@@ -4,7 +4,8 @@ package com.irissoft.capaNegocios;
 import com.irissoft.capaAccesoDatos.QProductos;
 import com.irissoft.datos.DtProductos;
 import com.irissoft.repositorios.RpProductos;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 public class NgProductos {
 
@@ -14,23 +15,39 @@ public class NgProductos {
         rpProductos = new QProductos();
     }
 
-    // Método para insertar un producto
-    public int insertarProducto(DtProductos dtProducto) {
-        return rpProductos.insert(dtProducto);
+    public String validarDatosProducto(String nombre, String cantidadStr, String precioUnitarioStr) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return "El nombre del producto es requerido";
+        }
+
+        try {
+            int cantidad = Integer.parseInt(cantidadStr);
+            if (cantidad <= 0) {
+                return "La cantidad debe ser mayor a cero";
+            }
+
+            BigDecimal precioUnitario = new BigDecimal(precioUnitarioStr);
+            if (precioUnitario.compareTo(BigDecimal.ZERO) <= 0) {
+                return "El precio unitario debe ser mayor a cero";
+            }
+
+            return "SUCCESS";
+        } catch (NumberFormatException e) {
+            return "Error en el formato de los valores numéricos";
+        }
     }
 
-    // Método para obtener todos los productos
-    public List<DtProductos> obtenerTodosLosProductos() {
-        return rpProductos.getAll();
+    public DtProductos crearProducto(String nombre, String cantidadStr, String precioUnitarioStr) {
+        DtProductos producto = new DtProductos();
+        producto.setId(UUID.randomUUID().toString());
+        producto.setNombre(nombre);
+        producto.setCantidad(Integer.parseInt(cantidadStr));
+        producto.setPrecioUnitario(new BigDecimal(precioUnitarioStr));
+        producto.setPrecioTotal(producto.getPrecioUnitario().multiply(new BigDecimal(producto.getCantidad())));
+        return producto;
     }
 
-    // Método para eliminar un producto por su id
-    public boolean eliminarProducto(String idProducto) {
-        return rpProductos.delete(idProducto);
-    }
-
-    // Método para actualizar un producto
-    public boolean actualizarProducto(DtProductos dtProducto) {
-        return rpProductos.update(dtProducto);
+    public int guardarProducto(DtProductos producto) {
+        return rpProductos.insert(producto);
     }
 }

@@ -104,4 +104,31 @@ public class QCategorias implements RpCategorias<DtCategorias>{
             return null;
         }
     }
+
+    @Override
+    public boolean existeProductoEnCategoria(String nombreProducto, String idCategoria) {
+        con = new ConexionBD();
+        query = """
+            SELECT COUNT(*) FROM productos p 
+            JOIN producto_categoria pc ON p.id = pc.idProducto 
+            WHERE p.nombre = ? AND pc.idCategoria = ?
+        """;
+
+        try {
+            PreparedStatement ps = con.conexion.prepareStatement(query);
+            ps.setString(1, nombreProducto);
+            ps.setString(2, idCategoria);
+
+            ResultSet rs = ps.executeQuery();
+            return rs.next() && rs.getInt(1) > 0;
+        } catch (SQLException e) {
+            System.err.println("Error al verificar producto en categoría: " + e.getMessage());
+            return false;
+        } finally {
+            if (con.conexion != null) try {
+                con.conexion.close();
+            } catch (SQLException e) {
+            }
+        }
+    }
 }
